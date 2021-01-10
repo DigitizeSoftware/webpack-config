@@ -1,4 +1,3 @@
-
 const oldExports = {
     entry: {
         server: "./src/index.ts",
@@ -66,6 +65,8 @@ const oldExports = {
     ]
 };
 
+module.exports = {webpackConfig};
+
 function webpackConfig(options) {
     if (!options) {
         throw new Error("Missing required `options` parameter");
@@ -103,7 +104,7 @@ function webpackConfig(options) {
     if (style) {
         const {type, extract} = style;
         if (type && !inArray(type, "css,scss")) {
-            throw new Error("`style.type` property should be on of 'css', 'scss'");
+            throw new Error("`style.type` property should be one of 'css', 'scss'");
         }
         if (extract && typeof extract !== "string") {
             throw new Error("`style.extract` should be a string");
