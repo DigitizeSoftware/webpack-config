@@ -1,69 +1,7 @@
-const oldExports = {
-    entry: {
-        server: "./src/index.ts",
-        web: "./src/web/index.ts"
-    },
-    mode: NODE_ENV,
-    target: "node",
-    output: {
-        path: path.resolve(__dirname, `server/dist`),
-        filename: 'server.js'
-    },
-    resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.mjs']
-    },
-    devtool: NODE_ENV === "development" ? "cheap-eval-source-map" : "source-map",
-    module: {
-        rules: [
-            // Fix for webpack to Resolve GraphQL .mjs files
-            {
-                test: /\.tsx?$/,
-                exclude: /(node_modules)/,
-                loader: "awesome-typescript-loader",
-            },
-            {
-                enforce: 'pre',
-                test: /\.js$/,
-                loader: 'source-map-loader'
-            },
-            {
-                test: /\.s?css$/,
-                use: [
-                    {
-                        loader: MiniCssExtractPlugin.loader,
-                        options: {
-                            publicPath: '../'
-                        },
-                    },
-                    'css-loader',
-                    'sass-loader'
-                ]
-            },
-            {
-                test: /\.(png|svg|jpg|gif)$/,
-                loader: 'url-loader?emitFile=false',
-            },
-            {
-                test: /\.(woff|woff2|ttf|eot|otf)$/,
-                loader: 'file-loader?emitFile=false'
-            },
-        ]
-    },
-    node: {
-        __dirname: false
-    },
-    plugins: [
-        new MiniCssExtractPlugin({filename: "public/style.css"}),
-        new webpack.DefinePlugin({
-            __isClient__: false,
-        })
-    ],
-    externals: [
-        nodeExternals({
-            whitelist: [/\.s?css$/, /utils/]
-        })
-    ]
-};
+const process = require("process");
+const nodeExternals = require('webpack-node-externals');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {webpackConfig};
 
@@ -77,12 +15,14 @@ function webpackConfig(options) {
         target = "web",
         output,
         jsx,
-        ts,
+        ts = true,
         style,
         whitelistNodeModules,
         copy,
         externals
     } = options;
+
+    const {type: styleType = "css", extract: styleExtract} = style || {};
 
     if (!entry || typeof entry !== "string") {
         throw new Error("Missing required property `entry`");
@@ -94,7 +34,7 @@ function webpackConfig(options) {
         throw new Error("Missing required property `output`");
     }
 
-    const {path: filePath, filename} = output;
+    const {path: filePath = "dist", filename = "index.js"} = output;
     if (!filePath) {
         throw new Error("Missing required property `output.path`");
     }
@@ -102,11 +42,10 @@ function webpackConfig(options) {
         throw new Error("Missing required property `output.filename`");
     }
     if (style) {
-        const {type, extract} = style;
-        if (type && !inArray(type, "css,scss")) {
+        if (styleType && !inArray(styleType, "css,scss")) {
             throw new Error("`style.type` property should be one of 'css', 'scss'");
         }
-        if (extract && typeof extract !== "string") {
+        if (styleExtract && typeof styleExtract !== "string") {
             throw new Error("`style.extract` should be a string");
         }
     }
@@ -139,7 +78,7 @@ function webpackConfig(options) {
     }
     if (style) {
         extensions.push(".css");
-        if (style.type === "scss") {
+        if (styleType === "scss") {
             extensions.push(".scss");
         }
     }
@@ -167,9 +106,8 @@ function webpackConfig(options) {
     });
 
     if (style) {
-        const {type, extract, omit} = style;
-        const test = type === "scss" ? /\.s?css$/ : /\.css$/;
-        if (omit) {
+        const test = styleType === "scss" ? /\.s?css$/ : /\.css$/;
+        if (style.omit) {
             rules.push({
                 test,
                 loader: "css-loader"
@@ -177,7 +115,7 @@ function webpackConfig(options) {
         }
         else {
             const use = [];
-            if (extract) {
+            if (styleExtract) {
                 use.push({
                     loader: MiniCssExtractPlugin.loader
                 });
@@ -186,7 +124,7 @@ function webpackConfig(options) {
                 use.push("style-loader");
             }
             use.push("css-loader");
-            if (type === "scss") {
+            if (styleType === "scss") {
                 use.push("sass-loader");
             }
             rules.push({
@@ -196,20 +134,9 @@ function webpackConfig(options) {
         }
     }
 
-    /*
-        {
-            test: /\.(png|svg|jpg|gif)$/,
-            loader: 'url-loader?emitFile=false',
-        },
-        {
-            test: /\.(woff|woff2|ttf|eot|otf)$/,
-            loader: 'file-loader?emitFile=false'
-        },
-    ]
-*/
     const plugins = [];
-    if (style && style.extract) {
-        plugins.push(new MiniCssExtractPlugin({filename: style.extract}),)
+    if (styleExtract) {
+        plugins.push(new MiniCssExtractPlugin({filename: styleExtract}),)
     }
 
     if (copy) {
@@ -234,7 +161,7 @@ function webpackConfig(options) {
         mode: NODE_ENV,
         target,
         output: {
-            path: path.resolve(__dirname, filePath),
+            path: path.resolve(process.cwd(), filePath),
             filename
         },
         resolve: {extensions},
@@ -246,59 +173,13 @@ function webpackConfig(options) {
         }
     };
 
-    /*
-    optimization: {
-        runtimeChunk: {
-            name: "manifest"
-        }
-    },
-    plugins: [
-        new CleanWebpackPlugin(['public']),
-        new CopyWebpackPlugin([
-            {
-                from: './src/assets/img',
-                to: './img',
-            },
-            {
-                from: './src/assets/fonts',
-                to: './fonts',
-            }
-        ]),
-        new webpack.DefinePlugin({
-            __isClient__: true,
-        }),
-        new ManifestPlugin()
-    ],
-    devtool: NODE_ENV === "development" ? "cheap-eval-source-map" : "source-map",
-    externals: [
-        {
-            "highcharts": "Highcharts",
-            "react": "React",
-            "react-dom": "ReactDOM",
-            "react-router-dom": "ReactRouterDOM",
-        },
-        configExternals
-    ]
-
-
-
-    externals: [
-        nodeExternals({
-            whitelist: [/apollo/, /\.s?css$/]
-        }),
-        configExternals
-    ]
-
-
-     */
-
     if (target === "node") {
         result.node = {
             __dirname: false
         };
 
         result.externals = [
-            nodeExternals({whitelist: whitelistNodeModules})
+            nodeExternals({allowlist: whitelistNodeModules})
         ];
     }
     if (target === "web" && externals) {
