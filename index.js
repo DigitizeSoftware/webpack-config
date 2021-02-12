@@ -4,10 +4,18 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    webpackConfig
+    webpackConfig: options => {
+        try {
+            createConfig(options);
+        }
+        catch (e) {
+            console.error("Error: " + e.message);
+            process.exit(1);
+        }
+    }
 };
 
-function webpackConfig(options) {
+function createConfig(options) {
     if (!options) {
         throw new Error("Missing required `options` parameter");
     }
