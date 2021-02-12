@@ -3,7 +3,9 @@ const nodeExternals = require('webpack-node-externals');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-module.exports = {webpackConfig};
+module.exports = {
+    webpackConfig
+};
 
 function webpackConfig(options) {
     if (!options) {
