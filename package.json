@@ -1,6 +1,6 @@
 {
   "name": "@digitize/webpack-config",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "This package is intended to help bootstrap your Webpack config.",
   "main": "index.js",
   "scripts": {
